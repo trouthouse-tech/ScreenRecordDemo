@@ -33,7 +33,7 @@ const App = () => {
       <TouchableOpacity
         onPress={() => fetchRecordings()}
         style={styles.fetchVideosButton}>
-        <Text>Retrieve videos</Text>
+        <Text style={styles.fetchVideoText}>Retrieve videos</Text>
       </TouchableOpacity>
       {recording !== '' && (
         <Video
@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
     width: 200,
     backgroundColor: 'grey',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   fetchVideoText: {
     color: '#ffffff',
