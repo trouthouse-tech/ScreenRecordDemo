@@ -14,8 +14,8 @@ class RecordComponent: RCTViewManager {
   let recorder = RPScreenRecorder.shared()
   private var isRecording = false
   let button: UIButton = UIButton()
-  var assetWriter: AVAssetWriter!
-  var videoInput: AVAssetWriterInput!
+  var assetWriter: AVAssetWriter?
+  var videoInput: AVAssetWriterInput?
   var isWritingStarted: Bool = false
   var fileName: String?
   public static var gfileURL: URL?
@@ -57,39 +57,75 @@ class RecordComponent: RCTViewManager {
         AVVideoHeightKey : UIScreen.main.bounds.size.height
       ]
       videoInput  = AVAssetWriterInput(mediaType: AVMediaType.video, outputSettings: videoOutputSettings)
-      videoInput.expectsMediaDataInRealTime = true
-      if let canAddInput = assetWriter?.canAdd(videoInput), canAddInput {
-        assetWriter.add(videoInput)
+      if let videoInput = self.videoInput,
+         let canAddInput = assetWriter?.canAdd(videoInput),
+         canAddInput {
+        assetWriter?.add(videoInput)
+      } else {
+          print("couldn't add video input")
       }
-  
-      recorder.startCapture(handler: { (sample, bufferType, error) in
-        if CMSampleBufferDataIsReady(sample) {
-          if self.assetWriter.status == AVAssetWriter.Status.unknown {
-            self.isRecording = true
-            self.assetWriter.startWriting()
-            self.assetWriter.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sample))
-          } else if self.assetWriter.status == AVAssetWriter.Status.writing {
-            if (bufferType == .video) {
-              if self.videoInput.isReadyForMoreMediaData {
-                self.videoInput.append(sample)
-              } else {
-                print("not ready for more data")
+      /*
+       recorder.startCapture(handler: { (sample, bufferType, error) in
+         if CMSampleBufferDataIsReady(sample) {
+           if self.assetWriter.status == AVAssetWriter.Status.unknown {
+             self.isRecording = true
+             self.assetWriter.startWriting()
+             self.assetWriter.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sample))
+           }
+           
+           if self.assetWriter.status == AVAssetWriter.Status.failed {
+             print("Error occured, status = \(self.assetWriter.status.rawValue), \(self.assetWriter.error!.localizedDescription) \(String(describing: self.assetWriter.error))")
+             return
+           }
+           
+           if (bufferType == .video) {
+             if self.videoInput.isReadyForMoreMediaData {
+               self.videoInput.append(sample)
+             }
+           }
+         }
+         
+       }) { (error) in
+         debugPrint(error as Any)
+       }
+       */
+      
+      recorder.startCapture { [weak self] (sampleBuffer, bufferType, error) in
+        guard let self = self else {return}
+        if error == nil {
+          if recorder.isRecording {
+            let presentationTimeStamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+            switch bufferType {
+            case .video:
+              if assetWriter.status == .unknown {
+                if assetWriter.startWriting() {
+                  self.isRecording = true
+                  assetWriter.startSession(atSourceTime: presentationTimeStamp)
+                }
+              } else if assetWriter.status == .writing {
+                if videoInput.isReadyForMoreMediaData {
+                  videoInput.append(sampleBuffer)
+                }
               }
-            } else {
-              print("buffer type: \(bufferType.rawValue)")
+            default:
+              print(bufferType)
             }
           }
-          
-          if self.assetWriter.status == AVAssetWriter.Status.failed {
-            print("Error occured, status = \(self.assetWriter.status.rawValue), \(self.assetWriter.error!.localizedDescription) \(String(describing: self.assetWriter.error))")
-            return
+        } else {
+          recorder.stopCapture { (err) in
+            print(err?.localizedDescription)
           }
         }
-        
-      }) { (error) in
-        debugPrint(error as Any)
+      } completionHandler: { (error) in
+        if let err = error {
+          recorder.stopCapture { (err) in
+            print(err?.localizedDescription)
+          }
+        } else {
+          // TODO: completion
+        }
       }
-      self.isRecording = true
+
     } else {
       // Fallback on earlier versions
     }
@@ -97,13 +133,25 @@ class RecordComponent: RCTViewManager {
   
   @objc func stopRecording() {
     if #available(iOS 11.0, *) {
-      RPScreenRecorder.shared().stopCapture { (error) in
-        self.assetWriter.finishWriting {
-          print(SharedFileSystemRCT.fetchAllReplays())
+      RPScreenRecorder.shared().stopCapture { [weak self] (error) in
+        guard let self = self else { return }
+        if let error = error {
+          print(error.localizedDescription)
+        } else {
+          self.videoInput.markAsFinished()
+          self.assetWriter.finishWriting(completionHandler: { [weak self] in
+            guard let self = self else { return }
+              self.isRecording = false
+              self.videoInput = nil
+              self.assetWriter = nil
+              print(SharedFileSystemRCT.fetchAllReplays())
+          })
         }
+//        self.assetWriter.finishWriting {
+//          print(SharedFileSystemRCT.fetchAllReplays())
+//        }
       }
     }
-    self.isRecording = false
   }
   
   func filePath(_ fileName: String) -> String
@@ -141,3 +189,4 @@ extension UIButton {
         setTitle(title , for: .normal)
         }
     }
+
