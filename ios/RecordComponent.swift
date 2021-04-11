@@ -57,6 +57,10 @@ class RecordComponent: RCTViewManager {
         AVVideoHeightKey : UIScreen.main.bounds.size.height
       ]
       videoInput  = AVAssetWriterInput(mediaType: AVMediaType.video, outputSettings: videoOutputSettings)
+      videoInput.expectsMediaDataInRealTime = true
+      if let canAddInput = assetWriter?.canAdd(videoInput), canAddInput {
+        assetWriter.add(videoInput)
+      }
   
       recorder.startCapture(handler: { (sample, bufferType, error) in
         if CMSampleBufferDataIsReady(sample) {
@@ -64,17 +68,21 @@ class RecordComponent: RCTViewManager {
             self.isRecording = true
             self.assetWriter.startWriting()
             self.assetWriter.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sample))
+          } else if self.assetWriter.status == AVAssetWriter.Status.writing {
+            if (bufferType == .video) {
+              if self.videoInput.isReadyForMoreMediaData {
+                self.videoInput.append(sample)
+              } else {
+                print("not ready for more data")
+              }
+            } else {
+              print("buffer type: \(bufferType.rawValue)")
+            }
           }
           
           if self.assetWriter.status == AVAssetWriter.Status.failed {
             print("Error occured, status = \(self.assetWriter.status.rawValue), \(self.assetWriter.error!.localizedDescription) \(String(describing: self.assetWriter.error))")
             return
-          }
-          
-          if (bufferType == .video) {
-            if self.videoInput.isReadyForMoreMediaData {
-              self.videoInput.append(sample)
-            }
           }
         }
         

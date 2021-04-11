@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SafeAreaView,
   NativeModules,
@@ -9,9 +9,19 @@ import {
 } from 'react-native';
 const RecordComponent = requireNativeComponent('RecordComponent');
 import Video from 'react-native-video';
+import RNFS from 'react-native-fs';
 
 const App = () => {
   const [recording, setRecording] = useState('');
+
+  useEffect(() => {
+    if (recording !== '') {
+      RNFS.stat(recording).then(stat => {
+        console.log('stat: ', stat);
+      });
+      RNFS.readFile(recording).then(file => console.log('file: ', file));
+    }
+  }, [recording]);
 
   const fetchRecordings = () => {
     NativeModules.SharedFileSystemRCT.getAllFiles()
@@ -19,6 +29,15 @@ const App = () => {
         (
           retrievedRecordings: {absolutePath: string; relativePath: string}[],
         ) => {
+          console.log('retrievedRecordings: ', retrievedRecordings);
+          retrievedRecordings.map(item => {
+            RNFS.stat(item.absolutePath).then(stat => {
+              console.log('stat: ', stat);
+            });
+            RNFS.readFile(item.absolutePath).then(file =>
+              console.log('file: ', file),
+            );
+          });
           setRecording(
             retrievedRecordings[retrievedRecordings.length - 1].absolutePath,
           );
@@ -69,6 +88,7 @@ const styles = StyleSheet.create({
   video: {
     height: 400,
     width: 200,
+    backgroundColor: '#d4d4d4',
   },
 });
 

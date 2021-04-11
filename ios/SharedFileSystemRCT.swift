@@ -5,17 +5,19 @@ import Foundation
 class SharedFileSystemRCT: NSObject {
   @objc
   func getAllFiles(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) -> Void {
-    let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-    let directoryContents = try! FileManager.default.contentsOfDirectory(at: documentsDirectory!, includingPropertiesForKeys: [.contentModificationDateKey], options: [])
-
-    // create a simple list of objects for javascript
-    let finalData = directoryContents.map { (URL) -> Dictionary<String, Any> in
-      return [
-        "absolutePath": URL.absoluteString,
-        "relativePath": URL.relativePath
-      ]
-    }
-    resolve(finalData)
+    clearAllFilesFromTempDirectory()
+//    let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+//    let replayPath = (documentsDirectory?.appendingPathComponent("/Replays"))!
+//    let directoryContents = try! FileManager.default.contentsOfDirectory(at: replayPath, includingPropertiesForKeys: [.contentModificationDateKey], options: [])
+//
+//    // create a simple list of objects for javascript
+//    let finalData = directoryContents.map { (URL) -> Dictionary<String, Any> in
+//      return [
+//        "absolutePath": URL.absoluteString,
+//        "relativePath": URL.relativePath
+//      ]
+//    }
+//    resolve(finalData)
   }
   
   @objc
@@ -31,6 +33,9 @@ class SharedFileSystemRCT: NSObject {
               if fileURL.pathExtension == "mp4" {
                   try FileManager.default.removeItem(at: fileURL)
               }
+            if fileURL.pathExtension == "mov" {
+                try FileManager.default.removeItem(at: fileURL)
+            }
           }
       } catch  { print(error) }
     } catch  { print(error) }
