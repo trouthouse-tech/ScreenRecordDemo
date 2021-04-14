@@ -20,11 +20,56 @@ class RecordComponent: RCTViewManager {
   var fileName: String?
   public static var gfileURL: URL?
   
+  /* buttonWindow is a custom window that we containt the button
+   we need to remove it when we are done */
+  private var buttonWindow: UIWindow?
+  
+  /*
+   windows are independent from each other. If you add a custom window, you need to remove if from view when you are done with it. Otherwise, it will appear in each screen.
+ */
+  deinit {
+    buttonWindow?.removeFromSuperview()
+    buttonWindow?.subviews.removeAll()
+    buttonWindow?.windowLevel = .statusBar
+    buttonWindow = nil
+  }
+  
+  /* I could not very well understant what this function overrides
+   I think this is something reactNative related.
+   However, It looks like this view returns the button. Shortly, we need to inset the button as subview of the buttonWindow.
+   */
+  
   override func view() -> UIView! {
     if #available(iOS 12.0, *) {
       button.setup(title: "Record", x: 100, y: 430, width: 220, height: 80, color: UIColor.red)
       button.addTarget(self, action: #selector(RecordComponent.pressed(sender:)), for: .touchUpInside)
-      return button
+      /* there are two conditions: SceneDelegate came with iOS13, so we need to make sure, it is above iOS 13.0. Then, we need to safe unwrap scene.
+      */
+      if  #available(iOS 13.0, *), let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+        // we need to give frame to the window. Let's make it as same as the button.
+        buttonWindow = UIWindow(frame: button.frame)
+        // buttons frame now should be equal to its bounds since we put it in window. Window has the real frame.
+        button.frame = button.bounds
+        
+        // now, we add  the button as the window's subview
+        buttonWindow.addSubview(button)
+        // we need to give windowScene to the window. Otherwise, it is not added to UI
+        buttonWindow.windowScene = scene
+        // this method makes it key window.
+        buttonWindow.makeKeyAndVisible()
+        // this is similar to "bringSubviewToFront", .statusBar represents "main" window's level. buttonWindow should be bigger than it, so that, it appears above the other views.
+        buttonWindow.windowLevel = .statusBar + 1
+        buttonWindow?.isUserInteractionEnabled = true
+        // we return the window as the view
+        
+        /* There is one critically important point;
+         If RecordComponent has a parent/container UIWiew in the VC where it is called, you need to apply the code between line 48-68 there. Otherwise, that view will appear in the record.
+         */
+        return buttonWindow
+        
+      } else {
+        return button
+      }
     } else {
       let label = UILabel()
       label.text = "Screen Recording Not Supported"
