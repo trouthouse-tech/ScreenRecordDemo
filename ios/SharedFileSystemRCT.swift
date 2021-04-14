@@ -5,19 +5,19 @@ import Foundation
 class SharedFileSystemRCT: NSObject {
   @objc
   func getAllFiles(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) -> Void {
-    clearAllFilesFromTempDirectory()
-//    let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-//    let replayPath = (documentsDirectory?.appendingPathComponent("/Replays"))!
-//    let directoryContents = try! FileManager.default.contentsOfDirectory(at: replayPath, includingPropertiesForKeys: [.contentModificationDateKey], options: [])
-//
-//    // create a simple list of objects for javascript
-//    let finalData = directoryContents.map { (URL) -> Dictionary<String, Any> in
-//      return [
-//        "absolutePath": URL.absoluteString,
-//        "relativePath": URL.relativePath
-//      ]
-//    }
-//    resolve(finalData)
+//    clearAllFilesFromTempDirectory()
+    let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+    let replayPath = (documentsDirectory?.appendingPathComponent("/Replays"))!
+    let directoryContents = try! FileManager.default.contentsOfDirectory(at: replayPath, includingPropertiesForKeys: [.contentModificationDateKey], options: [])
+
+    // create a simple list of objects for javascript
+    let finalData = directoryContents.map { (URL) -> Dictionary<String, Any> in
+      return [
+        "absolutePath": URL.absoluteString,
+        "relativePath": URL.relativePath
+      ]
+    }
+    resolve(finalData)
   }
   
   @objc
