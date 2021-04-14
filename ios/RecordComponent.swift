@@ -93,18 +93,18 @@ class RecordComponent: RCTViewManager {
       recorder.startCapture { [weak self] (sampleBuffer, bufferType, error) in
         guard let self = self else {return}
         if error == nil {
-          if recorder.isRecording {
+          if self.recorder.isRecording {
             let presentationTimeStamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
             switch bufferType {
             case .video:
-              if assetWriter.status == .unknown {
-                if assetWriter.startWriting() {
+              if self.assetWriter!.status == .unknown {
+                if self.assetWriter!.startWriting() {
                   self.isRecording = true
-                  assetWriter.startSession(atSourceTime: presentationTimeStamp)
+                  self.assetWriter!.startSession(atSourceTime: presentationTimeStamp)
                 }
-              } else if assetWriter.status == .writing {
-                if videoInput.isReadyForMoreMediaData {
-                  videoInput.append(sampleBuffer)
+              } else if self.assetWriter!.status == .writing {
+                if self.videoInput!.isReadyForMoreMediaData {
+                  self.videoInput!.append(sampleBuffer)
                 }
               }
             default:
@@ -112,13 +112,13 @@ class RecordComponent: RCTViewManager {
             }
           }
         } else {
-          recorder.stopCapture { (err) in
+          self.recorder.stopCapture { (err) in
             print(err?.localizedDescription)
           }
         }
       } completionHandler: { (error) in
         if let err = error {
-          recorder.stopCapture { (err) in
+          self.recorder.stopCapture { (err) in
             print(err?.localizedDescription)
           }
         } else {
@@ -138,8 +138,8 @@ class RecordComponent: RCTViewManager {
         if let error = error {
           print(error.localizedDescription)
         } else {
-          self.videoInput.markAsFinished()
-          self.assetWriter.finishWriting(completionHandler: { [weak self] in
+          self.videoInput!.markAsFinished()
+          self.assetWriter!.finishWriting(completionHandler: { [weak self] in
             guard let self = self else { return }
               self.isRecording = false
               self.videoInput = nil
