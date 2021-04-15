@@ -29,7 +29,9 @@ class RecordComponent: RCTViewManager {
  */
   deinit {
     buttonWindow?.removeFromSuperview()
-    buttonWindow?.subviews.removeAll()
+    buttonWindow?.subviews.forEach({ (view) in
+      view.removeFromSuperview()
+    })
     buttonWindow?.windowLevel = .statusBar
     buttonWindow = nil
   }
